@@ -1,0 +1,53 @@
+﻿{
+    "name": "Self Certs",
+    "image": "mcr.microsoft.com/devcontainers/dotnet:10.0",
+    "workspaceFolder": "/workspaces/self-certs",
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:1": {
+            "installZsh": true,
+            "configureZshAsDefaultShell": true,
+            "upgradePackages": false,
+            "username": "vscode",
+            "userSudoersOptions": "ALL=(ALL) NOPASSWD:ALL"
+        },
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "24"
+        },
+        "ghcr.io/itsmechlark/features/postgresql:1": {
+            "version": "18"
+        }
+    },
+    "containerEnv": {
+        "DB_PASSWORD_FILE": "/workspaces/self-certs/.devcontainer/secrets/db_password.txt"
+    },
+    "mounts": [
+        "source=${localWorkspaceFolder}/.devcontainer/pgdata/init,target=/docker-entrypoint-initdb.d,type=bind"
+    ],
+    "forwardPorts": [
+        5000,
+        5173,
+        5432
+    ], // 5xxx为后端，5173为Vite默认端口，5432为容器内数据库
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.cwd": "${workspaceFolder}"
+            },
+            "extensions": [
+                // 后端插件
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.csdevkit",
+                // 前端插件
+                "Vue.volar",
+                "dbaeumer.vscode-eslint",
+                "bradlc.vscode-tailwindcss",
+                // 杂项
+                "humao.rest-client"
+            ]
+        }
+    },
+    // 容器创建后自动运行的命令
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
+    "remoteUser": "vscode",
+    "containerUser": "root"
+}

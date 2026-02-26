@@ -1,0 +1,23 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vs/
+.vscode/
+
+# Node.js
+**/node_modules
+**/npm-debug.log
+src/frontend/dist/
+
+# .NET Build Output
+**/bin/
+**/obj/
+
+# Docker
+docker-compose*.yml
+Dockerfile
+
+# Local Env
+.env
