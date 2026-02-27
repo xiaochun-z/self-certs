@@ -24,6 +24,26 @@ public class CertController : ApiControllerBase
         return Success(configs.Select(c => new CaConfigResponse { Id = c.Id, Name = c.Name, CaCrt = c.CaCrt, CaKey = c.CaKey }).ToList());
     }
 
+    [HttpPost("ca/import")]
+    public async Task<ActionResult<ApiResult<CaConfigResponse>>> ImportCa([FromBody] ImportCaRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name)) return Error<CaConfigResponse>("CA Name is required.");
+        if (string.IsNullOrWhiteSpace(request.CaCrt)) return Error<CaConfigResponse>("CA Certificate is required.");
+        if (string.IsNullOrWhiteSpace(request.CaKey)) return Error<CaConfigResponse>("CA Private Key is required.");
+
+        var caConfig = new CaConfig
+        {
+            Name = request.Name,
+            CaCrt = request.CaCrt,
+            CaKey = request.CaKey,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+        _dbContext.CaConfigs.Add(caConfig);
+        await _dbContext.SaveChangesAsync();
+
+        return Success(new CaConfigResponse { Id = caConfig.Id, Name = caConfig.Name, CaCrt = caConfig.CaCrt, CaKey = caConfig.CaKey });
+    }
+
     [HttpPost("ca")]
     public async Task<ActionResult<ApiResult<CaConfigResponse>>> CreateCa([FromBody] CreateCaRequest request)
     {

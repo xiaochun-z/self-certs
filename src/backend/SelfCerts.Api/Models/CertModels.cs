@@ -6,6 +6,13 @@ public class CreateCaRequest
     public string Password { get; set; } = string.Empty;
 }
 
+public class ImportCaRequest
+{
+    public required string Name { get; set; }
+    public required string CaCrt { get; set; }
+    public required string CaKey { get; set; }
+}
+
 public class GenerateCertRequest
 {
     public int CaId { get; set; }
