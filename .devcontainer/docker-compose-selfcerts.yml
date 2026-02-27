@@ -12,12 +12,18 @@ services:
     ports:
       - "${APP_WEB_PORT:-8083}:80"
     volumes:
-      - /app/selfcerts/uploads:/app/wwwroot/uploads
+      - /data/docker/selfcerts/uploads:/app/wwwroot/uploads
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=selfcerts;Username=selfcerts
       - Logging__LogLevel__Default=${APP_LOG_LEVEL:-Information}
       - DB_PASSWORD_FILE=/run/secrets/db_password
       - ASPNETCORE_ENVIRONMENT=Production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.selfcerts.rule=Host(`selfcerts.app.shenhe.org`)"
+      - "traefik.http.routers.selfcerts.entrypoints=websecure,web"
+      - "traefik.http.routers.selfcerts.tls=true"
+      - "traefik.http.services.selfcerts.loadbalancer.server.port=${APP_WEB_PORT:-8083}"
     secrets:
       - db_password
     networks:
@@ -42,9 +48,8 @@ services:
     secrets:
       - db_password
     volumes:
-      # 数据将存储在 /app/selfcerts/pgdata/prod 或 /app/selfcerts/pgdata/pgdata/preview 下
-      - /app/selfcerts/pgdata/${APP_PROD_TAG:-prod}:/var/lib/postgresql
-      - /app/selfcerts/pgdata/init:/docker-entrypoint-initdb.d
+      - /data/docker/selfcerts/pgdata/${APP_PROD_TAG:-prod}:/var/lib/postgresql
+      - /data/docker/selfcerts/pgdata/init:/docker-entrypoint-initdb.d
       - /etc/timezone:/etc/timezone:ro
     networks:
       - selfcerts-net
@@ -54,7 +59,7 @@ services:
 # ============================
 secrets:
   db_password:
-    file: /app/selfcerts/secrets/db_password.txt
+    file: /data/docker/selfcerts/secrets/db_password.txt
 
 networks:
   selfcerts-net:
