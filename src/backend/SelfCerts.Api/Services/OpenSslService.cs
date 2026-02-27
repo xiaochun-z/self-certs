@@ -11,6 +11,46 @@ public class OpenSslService
         _logger = logger;
     }
 
+    public async Task<(string key, string crt)> GenerateCaCertAsync(string name, string password)
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var caKeyPath = Path.Combine(tempDir, "ca.key");
+            var caCrtPath = Path.Combine(tempDir, "ca.crt");
+            var passFilePath = Path.Combine(tempDir, "pass.txt");
+
+            if (!string.IsNullOrEmpty(password))
+            {
+                await File.WriteAllTextAsync(passFilePath, password);
+                await RunProcessAsync("openssl", "genrsa -aes256 -passout file:pass.txt -out ca.key 4096", tempDir);
+            }
+            else
+            {
+                await RunProcessAsync("openssl", "genrsa -out ca.key 4096", tempDir);
+            }
+
+            var passArg = string.IsNullOrEmpty(password) ? "" : "-passin file:pass.txt";
+            var subjName = name.Replace("/", "_").Replace("\"", "");
+            var subj = $"/CN={subjName}";
+            await RunProcessAsync("openssl", $"req -x509 -new -key ca.key -sha256 -days 3650 -out ca.crt -subj \"{subj}\" {passArg}", tempDir);
+
+            var keyContent = await File.ReadAllTextAsync(caKeyPath);
+            var crtContent = await File.ReadAllTextAsync(caCrtPath);
+
+            return (keyContent, crtContent);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
     public async Task<(string key, string crt)> GenerateServerCertAsync(string caCrt, string caKey, string caPass, string serverReqCnf)
     {
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));

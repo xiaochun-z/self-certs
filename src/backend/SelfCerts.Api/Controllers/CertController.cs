@@ -17,31 +17,73 @@ public class CertController : ApiControllerBase
         _dbContext = dbContext;
     }
 
-    [HttpGet("ca")]
-    public async Task<ActionResult<ApiResult<CaConfigResponse>>> GetCaConfig()
+    [HttpGet("cas")]
+    public async Task<ActionResult<ApiResult<List<CaConfigResponse>>>> GetCas()
     {
-        var config = await _dbContext.CaConfigs.FirstOrDefaultAsync();
-        if (config == null) return Success(new CaConfigResponse());
-        return Success(new CaConfigResponse { CaCrt = config.CaCrt, CaKey = config.CaKey });
+        var configs = await _dbContext.CaConfigs.OrderByDescending(c => c.UpdatedAt).ToListAsync();
+        return Success(configs.Select(c => new CaConfigResponse { Id = c.Id, Name = c.Name, CaCrt = c.CaCrt, CaKey = c.CaKey }).ToList());
+    }
+
+    [HttpPost("ca")]
+    public async Task<ActionResult<ApiResult<CaConfigResponse>>> CreateCa([FromBody] CreateCaRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return Error<CaConfigResponse>("CA Name is required.");
+
+        var (key, crt) = await _openSslService.GenerateCaCertAsync(request.Name, request.Password);
+
+        var caConfig = new CaConfig
+        {
+            Name = request.Name,
+            CaCrt = crt,
+            CaKey = key,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        _dbContext.CaConfigs.Add(caConfig);
+        await _dbContext.SaveChangesAsync();
+
+        return Success(new CaConfigResponse { Id = caConfig.Id, Name = caConfig.Name, CaCrt = caConfig.CaCrt, CaKey = caConfig.CaKey });
+    }
+
+    [HttpGet("history/{caId}")]
+    public async Task<ActionResult<ApiResult<List<CertRecordResponse>>>> GetHistory(int caId)
+    {
+        var records = await _dbContext.CertRecords
+            .Where(r => r.CaConfigId == caId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+
+        return Success(records.Select(r => new CertRecordResponse
+        {
+            Id = r.Id,
+            CaConfigId = r.CaConfigId,
+            ServerReqCnf = r.ServerReqCnf,
+            ServerKey = r.ServerKey,
+            ServerCrt = r.ServerCrt,
+            CreatedAt = r.CreatedAt
+        }).ToList());
     }
 
     [HttpPost("generate")]
     public async Task<ActionResult<ApiResult<GenerateCertResponse>>> GenerateCert([FromBody] GenerateCertRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.CaCrt) || string.IsNullOrWhiteSpace(request.CaKey))
-        {
-            return Error<GenerateCertResponse>("CA Certificate and Private Key are required.");
-        }
+        var caConfig = await _dbContext.CaConfigs.FindAsync(request.CaId);
+        if (caConfig == null) return Error<GenerateCertResponse>("CA not found.");
+
+        if (string.IsNullOrWhiteSpace(request.ServerReqCnfTemplate))
+            return Error<GenerateCertResponse>("Server Request Config is required.");
 
         var (key, crt) = await _openSslService.GenerateServerCertAsync(
-            request.CaCrt,
-            request.CaKey,
+            caConfig.CaCrt,
+            caConfig.CaKey,
             request.CaPassword,
             request.ServerReqCnfTemplate);
 
         var record = new CertRecord
         {
             Id = Guid.NewGuid(),
+            CaConfigId = caConfig.Id,
             ServerReqCnf = request.ServerReqCnfTemplate,
             ServerKey = key,
             ServerCrt = crt,
@@ -49,19 +91,6 @@ public class CertController : ApiControllerBase
         };
 
         _dbContext.CertRecords.Add(record);
-
-        var caConfig = await _dbContext.CaConfigs.FirstOrDefaultAsync();
-        if (caConfig == null)
-        {
-            _dbContext.CaConfigs.Add(new CaConfig { CaCrt = request.CaCrt, CaKey = request.CaKey });
-        }
-        else
-        {
-            caConfig.CaCrt = request.CaCrt;
-            caConfig.CaKey = request.CaKey;
-            caConfig.UpdatedAt = DateTimeOffset.UtcNow;
-        }
-
         await _dbContext.SaveChangesAsync();
 
         return Success(new GenerateCertResponse

@@ -22,9 +22,9 @@ public class SelfCertsDbContext : DbContext
             entity.Property(e => e.ServerReqCnf).IsRequired();
             entity.Property(e => e.ServerKey).IsRequired();
             entity.Property(e => e.ServerCrt).IsRequired();
+            entity.HasOne<CaConfig>().WithMany().HasForeignKey(e => e.CaConfigId);
         });
-
-        modelBuilder.Entity<CaConfig>(entity =>
+modelBuilder.Entity<CaConfig>(entity =>
         {
             entity.HasKey(e => e.Id);
         });
