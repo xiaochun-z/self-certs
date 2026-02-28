@@ -1,5 +1,7 @@
-﻿.devcontainer/pgdata/dev/
-.devcontainer/pgdata/prod/
+﻿.devcontainer/data/
+*.db
+*.db-shm
+*.db-wal
 code.txt
 code_part*.txt
 .vs/

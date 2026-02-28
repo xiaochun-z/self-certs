@@ -20,8 +20,11 @@ public class CertController : ApiControllerBase
     [HttpGet("cas")]
     public async Task<ActionResult<ApiResult<List<CaConfigResponse>>>> GetCas()
     {
-        var configs = await _dbContext.CaConfigs.OrderByDescending(c => c.UpdatedAt).ToListAsync();
-        return Success(configs.Select(c => new CaConfigResponse { Id = c.Id, Name = c.Name, CaCrt = c.CaCrt, CaKey = c.CaKey }).ToList());
+        var configs = await _dbContext.CaConfigs.ToListAsync();
+        var sortedConfigs = configs.OrderByDescending(c => c.UpdatedAt)
+            .Select(c => new CaConfigResponse { Id = c.Id, Name = c.Name, CaCrt = c.CaCrt, CaKey = c.CaKey })
+            .ToList();
+        return Success(sortedConfigs);
     }
 
     [HttpPost("ca/import")]
@@ -71,10 +74,10 @@ public class CertController : ApiControllerBase
     {
         var records = await _dbContext.CertRecords
             .Where(r => r.CaConfigId == caId)
-            .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
 
-        return Success(records.Select(r => new CertRecordResponse
+        var sortedRecords = records.OrderByDescending(r => r.CreatedAt);
+        return Success(sortedRecords.Select(r => new CertRecordResponse
         {
             Id = r.Id,
             CaConfigId = r.CaConfigId,

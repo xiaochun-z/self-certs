@@ -5,18 +5,16 @@ services:
   # 1. 应用服务 (Frontend + Backend)
   # ============================
   app:
-    image: selfcerts:${APP_VER_TAG:-latest}
+    image: ${REGISTRY:-registry.app.shenhe.org}/selfcerts:${APP_VER_TAG:-latest}
     container_name: selfcerts-${APP_PROD_TAG:-prod}-app
-    user: 1000:1000
     restart: unless-stopped
     ports:
       - "${APP_WEB_PORT:-8083}:80"
     volumes:
-      - /data/docker/selfcerts/uploads:/app/wwwroot/uploads
+      - /data/docker/selfcerts:/app/data
     environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=selfcerts;Username=selfcerts
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/selfcerts.db
       - Logging__LogLevel__Default=${APP_LOG_LEVEL:-Information}
-      - DB_PASSWORD_FILE=/run/secrets/db_password
       - ASPNETCORE_ENVIRONMENT=Production
     labels:
       - "traefik.enable=true"
@@ -24,43 +22,10 @@ services:
       - "traefik.http.routers.selfcerts.entrypoints=websecure,web"
       - "traefik.http.routers.selfcerts.tls=true"
       - "traefik.http.services.selfcerts.loadbalancer.server.port=${APP_WEB_PORT:-8083}"
-    secrets:
-      - db_password
     networks:
-      - selfcerts-net
-    depends_on:
-      - postgres
-
-  # ============================
-  # 2. 数据库服务
-  # ============================
-  postgres:
-    image: postgres:18
-    container_name: selfcerts-${APP_PROD_TAG:-prod}-db
-    restart: unless-stopped
-    ports:
-      - "${APP_DB_PORT:-127.0.0.1:0}:5432"
-    environment:
-      POSTGRES_DB: selfcerts
-      POSTGRES_USER: selfcerts
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-      TZ: "Asia/Shanghai"
-    secrets:
-      - db_password
-    volumes:
-      - /data/docker/selfcerts/pgdata/${APP_PROD_TAG:-prod}:/var/lib/postgresql
-      - /data/docker/selfcerts/pgdata/init:/docker-entrypoint-initdb.d
-      - /etc/timezone:/etc/timezone:ro
-    networks:
-      - selfcerts-net
-
-# ============================
-# Secrets 定义
-# ============================
-secrets:
-  db_password:
-    file: /data/docker/selfcerts/secrets/db_password.txt
+      - traefik-net
 
 networks:
-  selfcerts-net:
-    driver: bridge
+    traefik-net:
+      external: true
+      name: traefik-network

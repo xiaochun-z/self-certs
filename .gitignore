@@ -56,3 +56,7 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+.devcontainer/data/preview/selfcerts.db
+.devcontainer/data/prod/selfcerts.db
+.devcontainer/data/prod/selfcerts.db-shm
+.devcontainer/data/prod/selfcerts.db-wal

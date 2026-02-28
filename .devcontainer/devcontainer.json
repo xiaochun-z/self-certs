@@ -12,22 +12,12 @@
         },
         "ghcr.io/devcontainers/features/node:1": {
             "version": "24"
-        },
-        "ghcr.io/itsmechlark/features/postgresql:1": {
-            "version": "18"
         }
     },
-    "containerEnv": {
-        "DB_PASSWORD_FILE": "/workspaces/self-certs/.devcontainer/secrets/db_password.txt"
-    },
-    "mounts": [
-        "source=${localWorkspaceFolder}/.devcontainer/pgdata/init,target=/docker-entrypoint-initdb.d,type=bind"
-    ],
     "forwardPorts": [
         5000,
-        5173,
-        5432
-    ], // 5xxx为后端，5173为Vite默认端口，5432为容器内数据库
+        5173
+    ], // 5xxx为后端，5173为Vite默认端口
     "customizations": {
         "vscode": {
             "settings": {

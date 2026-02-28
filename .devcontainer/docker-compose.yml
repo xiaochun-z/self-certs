@@ -6,56 +6,15 @@ services:
       dockerfile: Dockerfile
       args:
         APP_VER_TAG: ${APP_VER_TAG:-0.0.0-dev}
-    image: selfcerts:${APP_VER_TAG:-latest}
+    image: ${REGISTRY:-registry.app.shenhe.org}/selfcerts:${APP_VER_TAG:-latest}
     container_name: selfcerts-dev-app
     restart: unless-stopped
     user: root
     ports:
       - "${APP_WEB_PORT:-8083}:80"
-      # 将容器内的数据库端口暴露给宿主机 (Visual Studio)
-      # 默认使用 54320 以避免与默认 5432 冲突，支持通过环境变量 APP_DB_PORT 修改
-      - "${APP_DB_PORT:-54320}:5432"
     volumes:
-      - ../uploads:/app/wwwroot/uploads
+      - ./data/${APP_PROD_TAG:-dev}:/app/data
     environment:
-      # 数据库现已集成在同一容器内，Host 修改为 localhost
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=selfcerts;Username=selfcerts
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/selfcerts.db
       - Logging__LogLevel__Default=${APP_LOG_LEVEL:-Information}
-      - DB_PASSWORD_FILE=/run/secrets/db_password
       - ASPNETCORE_ENVIRONMENT=Development
-    secrets:
-      - db_password
-    networks:
-      - selfcerts-net
-
-# ============================
-# 2. 数据库服务
-# ============================
-  postgres:
-    image: postgres:18
-    container_name: selfcerts-${APP_PROD_TAG:-dev}-db
-    restart: unless-stopped
-    ports:
-      - "${APP_DB_PORT:-127.0.0.1:0}:5432"
-    environment:
-      POSTGRES_DB: selfcerts
-      POSTGRES_USER: selfcerts
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-      TZ: "Asia/Shanghai"
-    secrets:
-      - db_password
-    volumes:
-      # 数据将存储在当前开发环境相对路径的 pgdata 下
-      - ./pgdata/${APP_PROD_TAG:-dev}:/var/lib/postgresql
-      - ./pgdata/init:/docker-entrypoint-initdb.d
-      - /etc/timezone:/etc/timezone:ro
-    networks:
-      - selfcerts-net
-
-secrets:
-  db_password:
-    file: ./secrets/db_password.txt
-
-networks:
-  selfcerts-net:
-    driver: bridge

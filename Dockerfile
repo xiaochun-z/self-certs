@@ -44,25 +44,14 @@ RUN dotnet publish "SelfCerts.Api.csproj" -c Release -o /app/publish /p:UseAppHo
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# 创建专用非 root 用户 (UID 1000) 以匹配宿主机默认 ID，避免挂载权限问题
-RUN if getent passwd 1000; then userdel -f $(getent passwd 1000 | cut -d: -f1); fi \
-    && if getent group 1000; then groupdel $(getent group 1000 | cut -d: -f1); fi \
-    && groupadd -g 1000 selfcerts \
-    && useradd -u 1000 -g selfcerts -m -s /bin/bash selfcerts
-
 # 1. 复制后端发布产物 (直接设置所有者，避免后续 chown 产生额外层)
 COPY --from=backend-build --chown=selfcerts:selfcerts /app/publish .
 # 2. 复制前端构建产物到 wwwroot
 COPY --from=frontend-build --chown=selfcerts:selfcerts /src/frontend/dist ./wwwroot
 
-# 安装 OpenSSL 和 Kerberos 依赖 (消除 Npgsql 的 libgssapi_krb5.so.2 警告)
-RUN apt-get update && apt-get install -y openssl libkrb5-3 && rm -rf /var/lib/apt/lists/*
+# 安装 OpenSSL 依赖
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
-# 创建目录并修正权限
-RUN mkdir -p /app/wwwroot/uploads \
-    && chown -R selfcerts:selfcerts /app/wwwroot/uploads
-
-USER selfcerts
 
 # 配置环境
 ENV ASPNETCORE_URLS=http://+:80

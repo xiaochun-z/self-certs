@@ -1,29 +1,12 @@
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-var dbPasswordFile = Environment.GetEnvironmentVariable("DB_PASSWORD_FILE");
-if (!string.IsNullOrEmpty(dbPasswordFile) && File.Exists(dbPasswordFile))
-{
-    var password = File.ReadAllText(dbPasswordFile).Trim();
-    var csBuilder = new NpgsqlConnectionStringBuilder(connectionString)
-    {
-        Password = password
-    };
-    connectionString = csBuilder.ConnectionString;
-}
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=selfcerts.db";
 
 builder.Services.AddDbContext<SelfCerts.Api.Infrastructure.SelfCertsDbContext>(options =>
-    options.UseNpgsql(connectionString, sqlOptions => 
-    {
-        // 增加数据库连接重试策略，应对数据库容器尚未就绪的情况
-        sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(5),
-            errorCodesToAdd: null);
-    }));
+    options.UseSqlite(connectionString));
 
 // Add services to the container.
 builder.Services.AddCors(options =>
@@ -53,6 +36,27 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SelfCerts.Api.Infrastructure.SelfCertsDbContext>();
     db.Database.EnsureCreated();
+
+    // 修复 SQLite 挂载空文件或 0 字节文件时，EnsureCreated 跳过建表的问题
+    if (db.Database.IsSqlite())
+    {
+        var creator = db.Database.GetService<Microsoft.EntityFrameworkCore.Storage.IRelationalDatabaseCreator>();
+        if (creator != null && !creator.HasTables())
+        {
+            try
+            {
+                creator.CreateTables();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                logger.LogInformation("SQLite tables have been successfully created.");
+            }
+            catch (Exception ex)
+            {
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "Failed to create SQLite tables. Please ensure the /app/data directory on the host has the correct write permissions.");
+                throw;
+            }
+        }
+    }
 }
 
 // Use Exception Handler
