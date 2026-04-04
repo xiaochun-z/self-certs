@@ -17,7 +17,9 @@ public class GenerateCertRequest
 {
     public int CaId { get; set; }
     public string CaPassword { get; set; } = string.Empty;
-    public required string ServerReqCnfTemplate { get; set; }
+    public required string ServerReqCnfTemplate { get; set;
+}
+    public int ValidityDays { get; set; } = 398;
 }
 
 public class GenerateCertResponse

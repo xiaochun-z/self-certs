@@ -101,7 +101,8 @@ public class CertController : ApiControllerBase
             caConfig.CaCrt,
             caConfig.CaKey,
             request.CaPassword,
-            request.ServerReqCnfTemplate);
+            request.ServerReqCnfTemplate,
+            request.ValidityDays);
 
         var record = new CertRecord
         {

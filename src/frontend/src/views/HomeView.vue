@@ -44,6 +44,7 @@ const caErrorMessage = ref('')
 // Cert Generation State
 const caPasswordForCert = ref('')
 const serverReqCnf = ref(defaultCnf)
+const validityDays = ref(398)
 const generatedKey = ref('')
 const generatedCrt = ref('')
 const isCertLoading = ref(false)
@@ -158,7 +159,9 @@ const generateCert = async () => {
       body: JSON.stringify({
         caId: selectedCaId.value,
         caPassword: caPasswordForCert.value,
-        serverReqCnfTemplate: serverReqCnf.value
+        serverReqCnfTemplate: serverReqCnf.value,
+        validityDays: validityDays.value
+     
       })
     })
 
@@ -338,9 +341,18 @@ const formatDate = (dateStr: string) => {
               <input v-model="caPasswordForCert" type="password" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2" placeholder="Leave blank if CA was created without a password" />
             </div>
             
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Certificate Validity (Days)</label>
+                <input v-model.number="validityDays" type="number" min="1" max="3650" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2" />
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Max trusted by iOS/macOS is 398 days.</p>
+              </div>
+            </div>
+
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Server Configuration</label>
-              
+           
+               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Server Configuration</label>
+
               <div class="mb-3 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-md">
                 <p class="text-sm text-amber-800 dark:text-amber-300">
                   <span class="font-bold">⚠️ Action Required:</span> Please update the <code class="font-bold">CN = ...</code> and the entries under <code class="font-bold">[ alt_names ]</code> below to match your actual Domain(s) and IP address(es) before issuing.

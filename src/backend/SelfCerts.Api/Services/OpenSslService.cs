@@ -51,7 +51,8 @@ public class OpenSslService
         }
     }
 
-    public async Task<(string key, string crt)> GenerateServerCertAsync(string caCrt, string caKey, string caPass, string serverReqCnf)
+    public async Task<(string key, string crt)> GenerateServerCertAsync(string caCrt, string 
+caKey, string caPass, string serverReqCnf, int validityDays = 398)
     {
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
@@ -87,7 +88,7 @@ public class OpenSslService
             // 3. 使用 CA 签名 CSR
             var passArg = string.IsNullOrEmpty(caPass) ? "" : "-passin file:pass.txt";
             // 使用 x509 模块代替 ca 模块，实现无状态签名，同时继承模板中的 v3_req 扩展（包含 alt_names）
-            var signArgs = $"x509 -req -in app.shenhe.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out app.shenhe.crt -days 3650 -sha256 -extfile server.cnf -extensions v3_req {passArg}";
+            var signArgs = $"x509 -req -in app.shenhe.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out app.shenhe.crt -days {validityDays} -sha256 -extfile server.cnf -extensions v3_req {passArg}";
             await RunProcessAsync("openssl", signArgs, tempDir);
 
             // 读取生成结果

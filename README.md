@@ -9,12 +9,12 @@ dotnet outdated -u
 ### Build docker image
 
 ```bash
-export APP_VER_TAG=0.0.1 REGISTRY=registry.app.shenhe.org
+export APP_VER_TAG=0.1.0 REGISTRY=registry.app.shenhe.org
 
 cd selfcerts
 $env:APP_VER_TAG=$APP_VER_TAG;docker compose -f .devcontainer/docker-compose.yml up -d --build
 
-export APP_VER_TAG=0.0.1 REGISTRY=registry.app.shenhe.org
+export APP_VER_TAG=0.1.0 REGISTRY=registry.app.shenhe.org
 APP_WEB_PORT=8083 APP_PROD_TAG=prod docker compose -f .devcontainer/docker-compose.yml up -d --build
 
 docker build -f Dockerfile --build-arg APP_VER_TAG=$APP_VER_TAG -t $REGISTRY/selfcerts:latest -t $REGISTRY/selfcerts:$APP_VER_TAG .
@@ -25,16 +25,16 @@ docker compose -f .devcontainer/docker-compose-selfcerts.yml up -d
 ### Preview (端口 18083):
 
 ```bash
-# export APP_VER_TAG=0.0.1-dev
+# export APP_VER_TAG=0.1.0-dev
 # docker pull selfcerts:$APP_VER_TAG
 
-export APP_VER_TAG=0.0.1
+export APP_VER_TAG=0.1.0
 APP_VER_TAG=$APP_VER_TAG APP_WEB_PORT=18083 APP_PROD_TAG=preview docker compose -f /app/selfcerts/docker-compose-selfcerts.yml -p selfcerts-preview up -d --pull always
 ```
 
 ### Production release (端口 8083)
 
 ```bash
-export APP_VER_TAG=0.0.1
+export APP_VER_TAG=0.1.0
 APP_VER_TAG=$APP_VER_TAG APP_WEB_PORT=8083 APP_PROD_TAG=prod docker compose -f /app/selfcerts/docker-compose-selfcerts.yml -p selfcerts-prod up -d --pull always
 ```
